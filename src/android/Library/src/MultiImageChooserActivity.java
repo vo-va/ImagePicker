@@ -523,6 +523,7 @@ public class MultiImageChooserActivity extends AppCompatActivity implements
                     options.inSampleSize = 1;
                     options.inJustDecodeBounds = true;
                     BitmapFactory.decodeFile(file.getAbsolutePath(), options);
+                    String mime = options.outMimeType;
                     int width = options.outWidth;
                     int height = options.outHeight;
                     float scale = calculateScale(width, height);
@@ -567,7 +568,7 @@ public class MultiImageChooserActivity extends AppCompatActivity implements
                     }
 
                     if (outputType == OutputType.FILE_URI) {
-                        file = storeImage(bmp, file.getName());
+                        file = storeImage(bmp, file.getName(), mime);
                         al.add(Uri.fromFile(file).toString());
 
                     } else if (outputType == OutputType.BASE64_STRING) {
@@ -657,19 +658,20 @@ public class MultiImageChooserActivity extends AppCompatActivity implements
         * The software is open source, MIT Licensed.
         * Copyright (C) 2012, webXells GmbH All Rights Reserved.
         */
-        private File storeImage(Bitmap bmp, String fileName) throws IOException {
-            int index = fileName.lastIndexOf('.');
-            String name = fileName.substring(0, index);
-            String ext = fileName.substring(index);
-            File file = File.createTempFile("tmp_" + name, ext);
+        private File storeImage(Bitmap bmp, String fileName, String mime) throws IOException {
+            // New Android version use filenames without file extension, relying on mime information
+            // to choose right compression format
+            File file = File.createTempFile("tmp_" + fileName, "");
             OutputStream outStream = new FileOutputStream(file);
 
-            if (ext.compareToIgnoreCase(".png") == 0) {
-                bmp.compress(Bitmap.CompressFormat.PNG, quality, outStream);
-            } else {
-                bmp.compress(Bitmap.CompressFormat.JPEG, quality, outStream);
+            switch (mime) {
+                case "image/png":
+                    bmp.compress(Bitmap.CompressFormat.PNG, quality, outStream);
+                    break;
+                default:
+                    bmp.compress(Bitmap.CompressFormat.JPEG, quality, outStream);
+                    break;
             }
-
             outStream.flush();
             outStream.close();
             return file;
